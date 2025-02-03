@@ -1,0 +1,128 @@
+/* Hint Button Styles */
+.codesensei-hint-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.codesensei-hint-btn:hover {
+    background-color: #1976D2;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Hint Container Styles */
+.codesensei-hint {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    max-width: 300px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 10000;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    border-left: 4px solid #2196F3;
+    animation: slideIn 0.3s ease;
+}
+
+/* Platform-specific styles */
+/* LeetCode */
+.leetcode-dark .codesensei-hint {
+    background-color: #282828;
+    color: #fff;
+}
+
+/* GeeksForGeeks */
+.gfg-theme .codesensei-hint {
+    border-left-color: #308D46;
+}
+
+/* CodingNinjas */
+.codingninjas-theme .codesensei-hint-btn {
+    background-color: #F78D1E;
+}
+
+.codingninjas-theme .codesensei-hint {
+    border-left-color: #F78D1E;
+}
+
+/* CodeForces */
+.codeforces-theme .codesensei-hint-btn {
+    background-color: #318CE7;
+}
+
+.codeforces-theme .codesensei-hint {
+    border-left-color: #318CE7;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Close button for hint */
+.codesensei-hint-close {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+    background: none;
+    border: none;
+    line-height: 1;
+}
+
+.codesensei-hint-close:hover {
+    color: #333;
+}
+
+/* Dark mode styles */
+.dark-mode .codesensei-hint {
+    background-color: #2d2d2d;
+    color: #fff;
+    border-left-color: #4CAF50;
+}
+
+.dark-mode .codesensei-hint-btn {
+    background-color: #4CAF50;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 768px) {
+    .codesensei-hint {
+        max-width: 250px;
+        font-size: 13px;
+    }
+
+    .codesensei-hint-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+} 
