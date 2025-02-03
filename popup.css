@@ -1,0 +1,48 @@
+body {
+    width: 300px;
+    padding: 15px;
+    font-family: 'Arial', sans-serif;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.timer-section {
+    text-align: center;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+#timer {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2196F3;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.stats-section {
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+} 
