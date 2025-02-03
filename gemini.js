@@ -33,4 +33,4 @@ class GeminiAPI {
     }
 }
 
-export default GeminiAPI; 
+window.GeminiAPI = GeminiAPI; 

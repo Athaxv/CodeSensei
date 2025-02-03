@@ -6,24 +6,50 @@ class CodeSensei {
         this.currentCode = '';
         this.timer = 0;
         this.timerInterval = null;
-        this.geminiAPI = new GeminiAPI();
+        this.geminiAPI = new window.GeminiAPI();
         this.init();
     }
 
     detectPlatform() {
-        const url = window.location.hostname;
-        if (url.includes('leetcode')) return 'leetcode';
-        if (url.includes('geeksforgeeks')) return 'gfg';
-        if (url.includes('codingninjas')) return 'codingninjas';
-        if (url.includes('codeforces')) return 'codeforces';
-        return null;
+        try {
+            const hostname = window.location.hostname;
+            
+            // More specific platform detection
+            if (hostname.includes('leetcode.com')) return 'leetcode';
+            if (hostname.includes('practice.geeksforgeeks.org')) return 'gfg';
+            if (hostname.includes('codingninjas.com')) return 'codingninjas';
+            if (hostname.includes('codeforces.com')) return 'codeforces';
+            
+            // If no match found
+            console.log('No matching platform found for:', hostname);
+            return null;
+        } catch (error) {
+            console.error('Error detecting platform:', error);
+            return null;
+        }
     }
 
     init() {
+        // Wait for the page to be fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initializeExtension());
+        } else {
+            this.initializeExtension();
+        }
+    }
+
+    initializeExtension() {
         this.setupEditorObserver();
         this.injectUI();
         this.startTimer();
         this.setupEventListeners();
+
+        // Retry injection after a delay in case the container wasn't ready
+        setTimeout(() => {
+            if (!document.querySelector('.codesensei-hint-btn')) {
+                this.injectUI();
+            }
+        }, 2000);
     }
 
     setupEditorObserver() {
@@ -48,25 +74,31 @@ class CodeSensei {
     }
 
     injectUI() {
-        const hintButton = document.createElement('button');
-        hintButton.className = 'codesensei-hint-btn';
-        hintButton.innerHTML = '💡 Get Hint';
-        hintButton.onclick = () => this.generateHint();
+        try {
+            // First check if button already exists
+            if (document.querySelector('.codesensei-hint-btn')) {
+                return;
+            }
 
-        // Add tooltip
-        hintButton.title = 'Get a helpful hint without spoiling the solution';
+            const hintButton = document.createElement('button');
+            hintButton.className = 'codesensei-hint-btn leetcode-theme'; // Add platform-specific theme
+            hintButton.innerHTML = '💡 Get Hint';
+            hintButton.style.position = 'fixed';
+            hintButton.style.bottom = '20px';
+            hintButton.style.right = '20px';
+            hintButton.style.zIndex = '99999';
+            
+            // Add click event listener
+            hintButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.generateHint();
+            });
 
-        // Platform-specific injection points
-        const injectionPoints = {
-            leetcode: '.monaco-editor-container',
-            gfg: '#code-editor',
-            codingninjas: '.code-area',
-            codeforces: '.problem-statement'
-        };
-
-        const container = document.querySelector(injectionPoints[this.platform]);
-        if (container) {
-            container.appendChild(hintButton);
+            // Add the button directly to the body
+            document.body.appendChild(hintButton);
+            console.log('CodeSensei: Hint button injected successfully');
+        } catch (error) {
+            console.error('Error injecting UI:', error);
         }
     }
 
@@ -182,5 +214,28 @@ class CodeSensei {
     }
 }
 
-// Initialize CodeSensei
-new CodeSensei(); 
+// Initialize with error handling and retry mechanism
+const initializeExtension = () => {
+    try {
+        // Check if the extension context is still valid
+        if (chrome.runtime.id) {
+            if (window.GeminiAPI) {
+                new CodeSensei();
+                console.log('CodeSensei initialized successfully');
+            } else {
+                console.log('Waiting for GeminiAPI...');
+                setTimeout(initializeExtension, 100);
+            }
+        }
+    } catch (error) {
+        if (error.message.includes('Extension context invalidated')) {
+            console.log('Extension context invalidated. Reloading...');
+            window.location.reload();
+        } else {
+            console.error('Error initializing CodeSensei:', error);
+        }
+    }
+};
+
+// Start initialization
+initializeExtension(); 
