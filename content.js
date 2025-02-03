@@ -103,32 +103,162 @@ class CodeSensei {
     }
 
     updateEditor() {
-        // Platform-specific code extraction
-        const codeSelectors = {
-            leetcode: '.monaco-editor textarea',
-            gfg: '#code',
-            codingninjas: '.monaco-editor textarea',
-            codeforces: '.ace_text-input'
-        };
+        try {
+            const codeSelectors = {
+                leetcode: {
+                    editor: '.monaco-editor',
+                    code: '.view-lines',
+                    language: '[data-mode]',
+                    languageSelect: '.select-dropdown'
+                },
+                gfg: {
+                    editor: '#code',
+                    code: '#code',
+                    language: '.language-select',
+                    languageSelect: '#languageSelect'
+                },
+                codingninjas: {
+                    editor: '.monaco-editor',
+                    code: '.view-lines',
+                    language: '[data-mode]',
+                    languageSelect: '.language-selector'
+                },
+                codeforces: {
+                    editor: '.ace_editor',
+                    code: '.ace_text-input',
+                    language: '.language-select',
+                    languageSelect: '#programTypeSelector'
+                }
+            };
 
-        const editor = document.querySelector(codeSelectors[this.platform]);
-        if (editor) {
-            this.currentCode = editor.value;
-            this.analyzeCode();
+            const selectors = codeSelectors[this.platform];
+            if (!selectors) return;
+
+            // Get the selected language
+            let selectedLanguage = 'unknown';
+            const languageElement = document.querySelector(selectors.languageSelect);
+            if (languageElement) {
+                selectedLanguage = languageElement.value || languageElement.textContent.toLowerCase();
+            }
+
+            // Get the code
+            const codeElement = document.querySelector(selectors.code);
+            if (codeElement) {
+                this.currentCode = codeElement.textContent || codeElement.value || '';
+                this.currentLanguage = selectedLanguage;
+                console.log('Code extracted:', this.currentCode);
+                console.log('Language detected:', this.currentLanguage);
+            }
+        } catch (error) {
+            console.error('Error updating editor:', error);
+            this.currentCode = '';
+            this.currentLanguage = 'unknown';
         }
     }
 
     extractProblemStatement() {
-        const selectors = {
-            leetcode: '.content__u3I1 .notranslate',
-            gfg: '.problems_problem_content__Xm_eO',
-            codingninjas: '.problem-statement-container',
-            codeforces: '.problem-statement'
-        };
+        try {
+            const selectors = {
+                leetcode: {
+                    title: '[data-cy="question-title"]',
+                    description: '[data-cy="question-content"]',
+                    difficulty: '[diff]',
+                    testcases: '.example-testcases pre',
+                    constraints: '[data-key="constraint-text"]'
+                },
+                gfg: {
+                    title: '.problem-tab h2',
+                    description: '.problems_problem_content__Xm_eO',
+                    difficulty: '.problems-difficulty-tag',
+                    testcases: '.problems_problem_content__Xm_eO pre',
+                    constraints: '.problems_problem_content__Xm_eO ul:last-of-type'
+                },
+                codingninjas: {
+                    title: '.problem-statement-title',
+                    description: '.problem-statement',
+                    difficulty: '.difficulty-tag',
+                    testcases: '.example-card pre',
+                    constraints: '.constraints-text'
+                },
+                codeforces: {
+                    title: '.title',
+                    description: '.problem-statement',
+                    difficulty: '.difficulty',
+                    testcases: '.sample-test pre',
+                    constraints: '.problem-statement .section-title:contains("Constraints") + div'
+                }
+            };
 
-        const problemElement = document.querySelector(selectors[this.platform]);
-        if (problemElement) {
-            this.problemStatement = problemElement.textContent.trim();
+            const platformSelectors = selectors[this.platform];
+            if (!platformSelectors) return;
+
+            let problemInfo = {
+                title: '',
+                description: '',
+                difficulty: '',
+                testcases: [],
+                constraints: '',
+                examples: []
+            };
+
+            // Extract title
+            const titleElement = document.querySelector(platformSelectors.title);
+            if (titleElement) {
+                problemInfo.title = titleElement.textContent.trim();
+            }
+
+            // Extract description
+            const descElement = document.querySelector(platformSelectors.description);
+            if (descElement) {
+                const description = descElement.cloneNode(true);
+                // Keep the code blocks for test cases but remove them from description
+                const codeBlocks = Array.from(description.querySelectorAll('pre, code'));
+                codeBlocks.forEach(block => {
+                    const text = block.textContent.trim();
+                    if (text) {
+                        problemInfo.examples.push(text);
+                    }
+                    block.remove();
+                });
+                problemInfo.description = description.textContent.trim();
+            }
+
+            // Extract test cases
+            const testElements = document.querySelectorAll(platformSelectors.testcases);
+            if (testElements.length > 0) {
+                testElements.forEach(test => {
+                    const testCase = test.textContent.trim();
+                    if (testCase) {
+                        problemInfo.testcases.push(testCase);
+                    }
+                });
+            }
+
+            // Extract constraints
+            const constraintsElement = document.querySelector(platformSelectors.constraints);
+            if (constraintsElement) {
+                problemInfo.constraints = constraintsElement.textContent.trim();
+            }
+
+            // Format the problem statement
+            this.problemStatement = `
+Problem: ${problemInfo.title}
+Difficulty: ${problemInfo.difficulty}
+
+Description:
+${problemInfo.description}
+
+Example Test Cases:
+${problemInfo.testcases.map((test, i) => `Test Case ${i + 1}:\n${test}`).join('\n\n')}
+
+Constraints:
+${problemInfo.constraints}
+`.trim();
+
+            console.log('Problem statement extracted:', this.problemStatement);
+        } catch (error) {
+            console.error('Error extracting problem statement:', error);
+            this.problemStatement = '';
         }
     }
 
