@@ -158,104 +158,141 @@ class CodeSensei {
 
     extractProblemStatement() {
         try {
-            const selectors = {
-                leetcode: {
-                    title: '[data-cy="question-title"]',
-                    description: '[data-cy="question-content"]',
-                    difficulty: '[diff]',
-                    testcases: '.example-testcases pre',
-                    constraints: '[data-key="constraint-text"]'
-                },
-                gfg: {
-                    title: '.problem-tab h2',
-                    description: '.problems_problem_content__Xm_eO',
-                    difficulty: '.problems-difficulty-tag',
-                    testcases: '.problems_problem_content__Xm_eO pre',
-                    constraints: '.problems_problem_content__Xm_eO ul:last-of-type'
-                },
-                codingninjas: {
-                    title: '.problem-statement-title',
-                    description: '.problem-statement',
-                    difficulty: '.difficulty-tag',
-                    testcases: '.example-card pre',
-                    constraints: '.constraints-text'
-                },
-                codeforces: {
-                    title: '.title',
-                    description: '.problem-statement',
-                    difficulty: '.difficulty',
-                    testcases: '.sample-test pre',
-                    constraints: '.problem-statement .section-title:contains("Constraints") + div'
+            // LeetCode specific selectors
+            const leetcodeSelectors = {
+                title: '[data-cy="question-title"]',
+                description: '[data-cy="question-content"]',
+                difficulty: '[diff]',
+                testcases: '.example-testcases pre',
+                constraints: '.constraints-content',
+                // Additional LeetCode specific selectors
+                examples: '.example-testcases',
+                followUp: '[data-key="follow-up-section"]',
+                notes: '[data-key="note-section"]'
+            };
+
+            // Wait for content to load
+            const waitForElement = (selector) => {
+                return new Promise(resolve => {
+                    if (document.querySelector(selector)) {
+                        return resolve(document.querySelector(selector));
+                    }
+
+                    const observer = new MutationObserver(mutations => {
+                        if (document.querySelector(selector)) {
+                            observer.disconnect();
+                            resolve(document.querySelector(selector));
+                        }
+                    });
+
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true
+                    });
+                });
+            };
+
+            // Extract problem content
+            const extractContent = async () => {
+                let problemInfo = {
+                    title: '',
+                    description: '',
+                    examples: [],
+                    testcases: [],
+                    constraints: [],
+                    followUp: '',
+                    notes: ''
+                };
+
+                // Extract title
+                const titleElement = await waitForElement(leetcodeSelectors.title);
+                if (titleElement) {
+                    problemInfo.title = titleElement.textContent.trim();
                 }
+
+                // Extract description
+                const descElement = await waitForElement(leetcodeSelectors.description);
+                if (descElement) {
+                    // Clone to avoid modifying the original DOM
+                    const descClone = descElement.cloneNode(true);
+                    
+                    // Remove example sections from description
+                    const exampleSections = descClone.querySelectorAll('.example-testcases');
+                    exampleSections.forEach(section => section.remove());
+
+                    problemInfo.description = descClone.textContent.trim();
+                }
+
+                // Extract examples and test cases
+                const exampleSection = await waitForElement(leetcodeSelectors.examples);
+                if (exampleSection) {
+                    const examples = exampleSection.querySelectorAll('pre');
+                    examples.forEach((example, index) => {
+                        const input = example.querySelector('.input__1YuL')?.textContent;
+                        const output = example.querySelector('.output__qIuo')?.textContent;
+                        const explanation = example.querySelector('.explanation__3U0V')?.textContent;
+
+                        if (input && output) {
+                            problemInfo.examples.push({
+                                input: input.replace('Input:', '').trim(),
+                                output: output.replace('Output:', '').trim(),
+                                explanation: explanation ? explanation.replace('Explanation:', '').trim() : ''
+                            });
+                        }
+                    });
+                }
+
+                // Extract constraints
+                const constraintsElement = await waitForElement(leetcodeSelectors.constraints);
+                if (constraintsElement) {
+                    const constraints = constraintsElement.querySelectorAll('li, p');
+                    constraints.forEach(constraint => {
+                        const text = constraint.textContent.trim();
+                        if (text) {
+                            problemInfo.constraints.push(text);
+                        }
+                    });
+                }
+
+                // Extract follow-up and notes
+                const followUpElement = await waitForElement(leetcodeSelectors.followUp);
+                if (followUpElement) {
+                    problemInfo.followUp = followUpElement.textContent.trim();
+                }
+
+                const notesElement = await waitForElement(leetcodeSelectors.notes);
+                if (notesElement) {
+                    problemInfo.notes = notesElement.textContent.trim();
+                }
+
+                return problemInfo;
             };
-
-            const platformSelectors = selectors[this.platform];
-            if (!platformSelectors) return;
-
-            let problemInfo = {
-                title: '',
-                description: '',
-                difficulty: '',
-                testcases: [],
-                constraints: '',
-                examples: []
-            };
-
-            // Extract title
-            const titleElement = document.querySelector(platformSelectors.title);
-            if (titleElement) {
-                problemInfo.title = titleElement.textContent.trim();
-            }
-
-            // Extract description
-            const descElement = document.querySelector(platformSelectors.description);
-            if (descElement) {
-                const description = descElement.cloneNode(true);
-                // Keep the code blocks for test cases but remove them from description
-                const codeBlocks = Array.from(description.querySelectorAll('pre, code'));
-                codeBlocks.forEach(block => {
-                    const text = block.textContent.trim();
-                    if (text) {
-                        problemInfo.examples.push(text);
-                    }
-                    block.remove();
-                });
-                problemInfo.description = description.textContent.trim();
-            }
-
-            // Extract test cases
-            const testElements = document.querySelectorAll(platformSelectors.testcases);
-            if (testElements.length > 0) {
-                testElements.forEach(test => {
-                    const testCase = test.textContent.trim();
-                    if (testCase) {
-                        problemInfo.testcases.push(testCase);
-                    }
-                });
-            }
-
-            // Extract constraints
-            const constraintsElement = document.querySelector(platformSelectors.constraints);
-            if (constraintsElement) {
-                problemInfo.constraints = constraintsElement.textContent.trim();
-            }
 
             // Format the problem statement
-            this.problemStatement = `
+            extractContent().then(problemInfo => {
+                this.problemStatement = `
 Problem: ${problemInfo.title}
-Difficulty: ${problemInfo.difficulty}
 
 Description:
 ${problemInfo.description}
 
-Example Test Cases:
-${problemInfo.testcases.map((test, i) => `Test Case ${i + 1}:\n${test}`).join('\n\n')}
+Examples:
+${problemInfo.examples.map((ex, i) => `
+Example ${i + 1}:
+Input: ${ex.input}
+Output: ${ex.output}
+${ex.explanation ? `Explanation: ${ex.explanation}` : ''}`).join('\n')}
 
 Constraints:
-${problemInfo.constraints}
+${problemInfo.constraints.map(c => `- ${c}`).join('\n')}
+
+${problemInfo.followUp ? `Follow-up:\n${problemInfo.followUp}\n` : ''}
+${problemInfo.notes ? `Notes:\n${problemInfo.notes}` : ''}
 `.trim();
 
-            console.log('Problem statement extracted:', this.problemStatement);
+                console.log('Problem statement extracted:', this.problemStatement);
+            });
+
         } catch (error) {
             console.error('Error extracting problem statement:', error);
             this.problemStatement = '';
@@ -272,7 +309,8 @@ ${problemInfo.constraints}
         try {
             const hint = await this.geminiAPI.generateHint(
                 this.problemStatement,
-                this.currentCode
+                this.currentCode,
+                this.currentLanguage
             );
             
             this.displayHint(hint);
