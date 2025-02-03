@@ -25,7 +25,7 @@
         "https://www.codingninjas.com/*",
         "https://codeforces.com/*"
       ],
-      "js": ["content.js"],
+      "js": ["gemini.js", "content.js"],
       "css": ["styles.css"]
     }
   ],

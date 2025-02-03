@@ -6,6 +6,7 @@ class CodeSensei {
         this.currentCode = '';
         this.timer = 0;
         this.timerInterval = null;
+        this.geminiAPI = new GeminiAPI();
         this.init();
     }
 
@@ -52,6 +53,9 @@ class CodeSensei {
         hintButton.innerHTML = '💡 Get Hint';
         hintButton.onclick = () => this.generateHint();
 
+        // Add tooltip
+        hintButton.title = 'Get a helpful hint without spoiling the solution';
+
         // Platform-specific injection points
         const injectionPoints = {
             leetcode: '.monaco-editor-container',
@@ -82,32 +86,76 @@ class CodeSensei {
         }
     }
 
-    async generateHint() {
-        try {
-            const response = await fetch('YOUR_BACKEND_API/hint', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    code: this.currentCode,
-                    problem: this.problemStatement,
-                    platform: this.platform
-                })
-            });
+    extractProblemStatement() {
+        const selectors = {
+            leetcode: '.content__u3I1 .notranslate',
+            gfg: '.problems_problem_content__Xm_eO',
+            codingninjas: '.problem-statement-container',
+            codeforces: '.problem-statement'
+        };
 
-            const hint = await response.json();
+        const problemElement = document.querySelector(selectors[this.platform]);
+        if (problemElement) {
+            this.problemStatement = problemElement.textContent.trim();
+        }
+    }
+
+    async generateHint() {
+        // Show loading state
+        const hintButton = document.querySelector('.codesensei-hint-btn');
+        const originalText = hintButton.innerHTML;
+        hintButton.innerHTML = '🤔 Thinking...';
+        hintButton.disabled = true;
+
+        try {
+            const hint = await this.geminiAPI.generateHint(
+                this.problemStatement,
+                this.currentCode
+            );
+            
             this.displayHint(hint);
         } catch (error) {
-            console.error('Error generating hint:', error);
+            console.error('Error getting hint:', error);
+            this.displayHint('Sorry, I could not generate a hint at the moment. Please try again.');
+        } finally {
+            // Restore button state
+            hintButton.innerHTML = originalText;
+            hintButton.disabled = false;
         }
     }
 
     displayHint(hint) {
+        // Remove existing hint if any
+        const existingHint = document.querySelector('.codesensei-hint');
+        if (existingHint) {
+            existingHint.remove();
+        }
+
         const hintContainer = document.createElement('div');
         hintContainer.className = 'codesensei-hint';
-        hintContainer.innerHTML = hint.message;
+        
+        const closeButton = document.createElement('button');
+        closeButton.className = 'codesensei-hint-close';
+        closeButton.innerHTML = '×';
+        closeButton.onclick = () => hintContainer.remove();
+
+        const hintContent = document.createElement('div');
+        hintContent.className = 'codesensei-hint-content';
+        hintContent.innerHTML = `
+            <div class="hint-header">💡 Hint</div>
+            <div class="hint-text">${hint}</div>
+        `;
+
+        hintContainer.appendChild(closeButton);
+        hintContainer.appendChild(hintContent);
         document.body.appendChild(hintContainer);
+
+        // Auto-hide hint after 30 seconds
+        setTimeout(() => {
+            if (hintContainer.parentElement) {
+                hintContainer.remove();
+            }
+        }, 30000);
     }
 
     startTimer() {
